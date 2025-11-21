@@ -3,7 +3,7 @@ from http import HTTPStatus
 from pytils.translit import slugify
 
 from notes.models import Note
-from tests.testing_utils import (
+from .testing_utils import (
     FixtureCase,
 
     ADD_URL,

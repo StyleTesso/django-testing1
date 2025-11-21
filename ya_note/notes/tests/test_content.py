@@ -1,5 +1,5 @@
 from notes.forms import NoteForm
-from tests.testing_utils import (
+from .testing_utils import (
     FixtureCase,
     LIST_URL, ADD_URL, EDIT_URL
 )

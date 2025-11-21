@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-from tests.testing_utils import (
+from .testing_utils import (
     FixtureCase,
 
     HOME_URL, LOGIN_URL, LOGOUT_URL, SIGNUP_URL,
