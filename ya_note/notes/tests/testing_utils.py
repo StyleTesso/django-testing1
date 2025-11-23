@@ -34,23 +34,26 @@ class FixtureCase(TestCase):
 
     @classmethod
     def setUpTestData(cls):
+        # Создаем и авторизуем пользователя.
         cls.not_author_user = User.objects.create(username='Авторизованный')
         cls.not_author_client = Client()
         cls.not_author_client.force_login(cls.not_author_user)
 
+        # Создаем и авторизуем пользователя как Автора.
         cls.author_user = User.objects.create(username='Автор')
         cls.author_client = Client()
         cls.author_client.force_login(cls.author_user)
 
+        # Создаем заметку от Пользователя.
         cls.note = Note.objects.create(
             title='Заголовок',
             text='Текст',
             slug=NOTE_SLUG,
             author=cls.author_user
         )
-
+        # Данные для POST-запроса при создании заметки.
         cls.form_data = {
-            'title': 'Второй заголовок',
-            'text': 'Второй текст',
+            'title': 'POST заголовок',
+            'text': 'POST текст',
             'slug': 'second-slug'
         }

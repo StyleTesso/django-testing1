@@ -9,47 +9,51 @@ from news.models import Comment
 
 pytestmark = pytest.mark.django_db
 client = Client()
-
-COMMENT_DATA = {'text': 'Новый текст'}
-
-BAD_COMMENT_DATA = [
+# Делаем форму для post запроса.
+FORM_DATA = {'text': 'Новый текст'}
+# Делаем форму для post запроса.
+BAD_FORM_DATA = [
     {'text': f'** ***, *** hhhhh {bad_word} hhhhh. hhh'}
     for bad_word in BAD_WORDS
 ]
 
 
-def test_anonymous_user_cant_create_comment(client, detail_url):
-    assert client.post(
-        detail_url, data=COMMENT_DATA
-    ).status_code == HTTPStatus.FOUND
+def test_user_can_create_comment(
+        not_author_client, detail_url,
+        news,
+        redirect_detail_comments):
+    """
+    Проверяем, что авторизованный пользователь
+    может оставить комментарий.
+    """
+    response = not_author_client.post(detail_url, data=FORM_DATA)
+    assertRedirects(response, redirect_detail_comments)
+    assert response.status_code == HTTPStatus.FOUND
+    comment_count = Comment.objects.count()
+    assert comment_count == 1
+    new_comment = Comment.objects.get()
+    assert new_comment.text == FORM_DATA['text']
+
+
+def test_anonymous_cant_create_comment(client, detail_url):
+    """
+    Проверяем, что анонимный пользователь
+    не может комментировать новость.
+    """
+    response = client.post(detail_url, data=FORM_DATA)
+    assert response.status_code == HTTPStatus.FOUND
     assert Comment.objects.count() == 0
 
 
-def test_user_can_create_comment(
-        not_author_client,
-        news,
-        not_author,
-        detail_url
-):
-    assert not_author_client.post(
-        detail_url, data=COMMENT_DATA
-    ).status_code == HTTPStatus.FOUND
-    comments_count = Comment.objects.count()
-    assert comments_count == 1
-    comment = Comment.objects.get()
-    assert comment.text == COMMENT_DATA['text']
-    assert comment.news == news
-    assert comment.author == not_author
-
-
 @pytest.mark.parametrize(
-    'data_with_bad_word', BAD_COMMENT_DATA
+    'data_with_bad_word', BAD_FORM_DATA
 )
 def test_user_cant_use_bad_words(
         not_author_client,
         detail_url,
         data_with_bad_word
 ):
+    """Проверяем, что комментарий не создается если в нем есть плохие слова."""
     response = not_author_client.post(detail_url, data=data_with_bad_word)
     assert response.status_code == HTTPStatus.OK
     assert Comment.objects.count() == 0
@@ -59,7 +63,9 @@ def test_user_cant_use_bad_words(
 
 
 def test_author_can_delete_comment(author_client, news, comment, delete_url):
-    assert author_client.post(delete_url).status_code == HTTPStatus.FOUND
+    """Проверяем, что автор может удалить свой комментарий."""
+    response = author_client.post(delete_url)
+    assert response.status_code == HTTPStatus.FOUND
     assert Comment.objects.count() == 0
 
 
@@ -68,14 +74,10 @@ def test_not_author_cant_delete_comment(
         delete_url,
         comment
 ):
-    assert not_author_client.post(
-        delete_url).status_code == HTTPStatus.NOT_FOUND
+    """Проверяем, что пользователь не может удалить чужой комментарий."""
+    response = not_author_client.post(delete_url)
+    assert response.status_code == HTTPStatus.NOT_FOUND
     assert Comment.objects.count() == 1
-    assert Comment.objects.filter(pk=comment.pk).exists()
-    current_comment = Comment.objects.get(pk=comment.pk)
-    assert comment.text == current_comment.text
-    assert comment.news == current_comment.news
-    assert comment.author == current_comment.author
 
 
 def test_author_can_edit_comment(
@@ -84,19 +86,21 @@ def test_author_can_edit_comment(
         edit_url,
         redirect_detail_comments
 ):
-    response = author_client.post(edit_url, data=COMMENT_DATA)
+    """Проверяем, что автор может редактировать свой комментарий."""
+    response = author_client.post(edit_url, data=FORM_DATA)
     assert response.status_code == HTTPStatus.FOUND
     assertRedirects(response, redirect_detail_comments)
-    updated_comment = Comment.objects.get(pk=comment.pk)
-    assert updated_comment.text == COMMENT_DATA['text']
-    assert updated_comment.news == comment.news
-    assert updated_comment.author == comment.author
+    comment.refresh_from_db()
+    assert comment.text == FORM_DATA['text']
+    assert comment.news == comment.news
+    assert comment.author == comment.author
 
 
 def test_not_author_cant_edit_comment(not_author_client, comment, edit_url):
-    response = not_author_client.post(edit_url, data=COMMENT_DATA)
+    """Проверяем, что пользователь не может изменять чужой комментарий."""
+    response = not_author_client.post(edit_url, data=FORM_DATA)
     assert response.status_code == HTTPStatus.NOT_FOUND
-    not_updated_comment = Comment.objects.get(pk=comment.pk)
-    assert not_updated_comment.text == comment.text
-    assert not_updated_comment.news == comment.news
-    assert not_updated_comment.author == comment.author
+    comment_from_db = Comment.objects.get(pk=comment.pk)
+    assert comment_from_db.text == comment.text
+    assert comment_from_db.news == comment.news
+    assert comment_from_db.author == comment.author

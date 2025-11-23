@@ -9,6 +9,7 @@ from news.models import News, Comment
 from yanews.settings import NEWS_COUNT_ON_HOME_PAGE
 
 
+# Создаем фикстуру новости.
 @pytest.fixture
 def news(db):
     return News.objects.create(
@@ -17,11 +18,19 @@ def news(db):
     )
 
 
+# Создаем фикстуру автора.
 @pytest.fixture
 def author(django_user_model):
     return django_user_model.objects.create(username='Автор')
 
 
+# Создаем фикстуру обычного пользователя.
+@pytest.fixture
+def not_author(django_user_model):
+    return django_user_model.objects.create(username='Не автор')
+
+
+# Авторизуем автора.
 @pytest.fixture
 def author_client(author):
     client = Client()
@@ -29,11 +38,7 @@ def author_client(author):
     return client
 
 
-@pytest.fixture
-def not_author(django_user_model):
-    return django_user_model.objects.create(username='Не автор')
-
-
+# Авторизуем обычного пользователя.
 @pytest.fixture
 def not_author_client(not_author):
     client = Client()
@@ -41,17 +46,9 @@ def not_author_client(not_author):
     return client
 
 
+# Создаем несколько образцов новостей в БД.
 @pytest.fixture
-def comment(author, news, db):
-    return Comment.objects.create(
-        news=news,
-        author=author,
-        text='Текст комментария'
-    )
-
-
-@pytest.fixture
-def news_sample(db):
+def news_example(db):
     News.objects.bulk_create(
         News(
             title=f'Заголовок {index + 1}',
@@ -61,8 +58,19 @@ def news_sample(db):
     )
 
 
+# Создаем фикстуру Комментария.
 @pytest.fixture
-def comments_sample(author, news, db):
+def comment(author, news, db):
+    return Comment.objects.create(
+        news=news,
+        author=author,
+        text='Текст комментария'
+    )
+
+
+# Создаем несколько образцов комментариев в БД.
+@pytest.fixture
+def comments_example(author, news, db):
     for index in range(15):
         comment = Comment.objects.create(
             news=news,

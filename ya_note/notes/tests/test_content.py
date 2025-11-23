@@ -6,14 +6,15 @@ from .testing_utils import (
 
 
 class TestContent(FixtureCase):
-    def test_note_in_list(self):
+    def test_note_add_list(self):
         """
         Проверяем, что отдельная заметка передается на страницу
         со списком заметок.
         """
-        notes = self.author_client.get(LIST_URL).context['object_list']
-        self.assertIn(self.note, notes)
-        note = notes.get(pk=self.note.id)
+        response = self.author_client.get(LIST_URL)
+        object_list = response.context['object_list']
+        self.assertIn(self.note, object_list)
+        note = object_list.get(pk=self.note.id)
         self.assertEqual(note.title, self.note.title)
         self.assertEqual(note.text, self.note.text)
         self.assertEqual(note.slug, self.note.slug)
@@ -24,10 +25,9 @@ class TestContent(FixtureCase):
         Проверяем, что в список заметок одного пользователя
         не попадают заметки другого пользователя.
         """
-        self.assertNotIn(
-            self.note,
-            self.not_author_client.get(LIST_URL).context['object_list']
-        )
+        response = self.not_author_client.get(LIST_URL)
+        object_list = response.context['object_list']
+        self.assertNotIn(self.note, object_list)
 
     def test_pages_contains_form(self):
         """
@@ -36,8 +36,6 @@ class TestContent(FixtureCase):
         """
         urls = (ADD_URL, EDIT_URL)
         for url in urls:
+            response = self.author_client.get(url)
             with self.subTest(url=url):
-                self.assertIsInstance(
-                    self.author_client.get(url).context.get('form'),
-                    NoteForm
-                )
+                self.assertIsInstance(response.context.get('form'), NoteForm)
