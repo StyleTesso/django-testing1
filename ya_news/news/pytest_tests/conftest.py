@@ -9,28 +9,16 @@ from news.models import News, Comment
 from yanews.settings import NEWS_COUNT_ON_HOME_PAGE
 
 
-# Создаем фикстуру новости.
-@pytest.fixture
-def news(db):
-    return News.objects.create(
-        title='Заголовок',
-        text='Текст заметки',
-    )
-
-
-# Создаем фикстуру автора.
 @pytest.fixture
 def author(django_user_model):
     return django_user_model.objects.create(username='Автор')
 
 
-# Создаем фикстуру обычного пользователя.
 @pytest.fixture
-def not_author(django_user_model):
-    return django_user_model.objects.create(username='Не автор')
+def reader(django_user_model):
+    return django_user_model.objects.create(username='Читатель')
 
 
-# Авторизуем автора.
 @pytest.fixture
 def author_client(author):
     client = Client()
@@ -38,47 +26,25 @@ def author_client(author):
     return client
 
 
-# Авторизуем обычного пользователя.
 @pytest.fixture
-def not_author_client(not_author):
+def reader_client(reader):
     client = Client()
-    client.force_login(not_author)
+    client.force_login(reader)
     return client
 
 
-# Создаем несколько образцов новостей в БД.
 @pytest.fixture
-def news_example(db):
-    News.objects.bulk_create(
-        News(
-            title=f'Заголовок {index + 1}',
-            text=f'Текст заметки {index + 1}',
-            date=datetime.today() - timedelta(days=index)
-        ) for index in range(NEWS_COUNT_ON_HOME_PAGE)
+def news(db):
+    news = News.objects.create(
+        title='Заголовок',
+        text='Текст',
     )
+    return news
 
 
-# Создаем фикстуру Комментария.
 @pytest.fixture
-def comment(author, news, db):
-    return Comment.objects.create(
-        news=news,
-        author=author,
-        text='Текст комментария'
-    )
-
-
-# Создаем несколько образцов комментариев в БД.
-@pytest.fixture
-def comments_example(author, news, db):
-    for index in range(15):
-        comment = Comment.objects.create(
-            news=news,
-            author=author,
-            text=f'Tекст комментария {index}',
-        )
-        comment.created = timezone.now() + timedelta(days=index)
-        comment.save()
+def detail_url(news):
+    return reverse('news:detail', args=(news.id,))
 
 
 @pytest.fixture
@@ -92,18 +58,18 @@ def login_url():
 
 
 @pytest.fixture
-def logout_url():
-    return reverse('users:logout')
-
-
-@pytest.fixture
 def signup_url():
     return reverse('users:signup')
 
 
 @pytest.fixture
-def detail_url(news):
-    return reverse('news:detail', args=(news.id,))
+def comment(author, news, db):
+    comment = Comment.objects.create(
+        news=news,
+        text='Текст',
+        author=author
+    )
+    return comment
 
 
 @pytest.fixture
@@ -117,15 +83,29 @@ def delete_url(comment):
 
 
 @pytest.fixture
-def redirect_edit_url(login_url, edit_url):
-    return f"{login_url}?next={edit_url}"
+def all_news(db):
+    News.objects.bulk_create(
+        News(
+            title=f'Новость {index}',
+            text='Текст',
+            date=datetime.today() - timedelta(days=index)
+        )for index in range(NEWS_COUNT_ON_HOME_PAGE + 1)
+    )
 
 
 @pytest.fixture
-def redirect_delete_url(login_url, delete_url):
-    return f'{login_url}?next={delete_url}'
+def all_comments(author, news, db, detail_url):
+    now = timezone.now()
+    for index in range(10):
+        comment = Comment.objects.create(
+            news=news,
+            author=author,
+            text=f'Текст комментария{index}'
+        )
+        comment.created = now + timedelta(days=index)
+        comment.save()
 
 
 @pytest.fixture
-def redirect_detail_comments(detail_url):
-    return f'{detail_url}#comments'
+def form_data():
+    return {'text': 'Новый текст'}

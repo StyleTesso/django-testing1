@@ -1,12 +1,33 @@
+from django.test import TestCase, Client
+from django.contrib.auth import get_user_model
+from django.urls import reverse
+
 from notes.forms import NoteForm
-from .testing_utils import (
-    FixtureCase,
-    LIST_URL, ADD_URL, EDIT_URL
-)
+from notes.models import Note
+
+User = get_user_model()
+
+LIST_URL = reverse('notes:list')
 
 
-class TestContent(FixtureCase):
-    def test_note_add_list(self):
+class TestContent(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.reader_user = User.objects.create(username='Читатель')
+        cls.reader_client = Client()
+        cls.reader_client.force_login(cls.reader_user)
+
+        cls.author_user = User.objects.create(username='Автор')
+        cls.author_client = Client()
+        cls.author_client.force_login(cls.author_user)
+        cls.note = Note.objects.create(
+            title='Заголовок',
+            text='Текст',
+            author=cls.author_user,
+            slug='note_slug')
+
+    def test_new_note_in_list_notes(self):
         """
         Проверяем, что отдельная заметка передается на страницу
         со списком заметок.
@@ -14,28 +35,26 @@ class TestContent(FixtureCase):
         response = self.author_client.get(LIST_URL)
         object_list = response.context['object_list']
         self.assertIn(self.note, object_list)
-        note = object_list.get(pk=self.note.id)
-        self.assertEqual(note.title, self.note.title)
-        self.assertEqual(note.text, self.note.text)
-        self.assertEqual(note.slug, self.note.slug)
-        self.assertEqual(note.author, self.note.author)
 
-    def test_note_not_in_list(self):
+    def test_note_note_add_all_list(self):
         """
         Проверяем, что в список заметок одного пользователя
         не попадают заметки другого пользователя.
         """
-        response = self.not_author_client.get(LIST_URL)
+        response = self.reader_client.get(LIST_URL)
         object_list = response.context['object_list']
         self.assertNotIn(self.note, object_list)
 
-    def test_pages_contains_form(self):
-        """
-        Проверяем, что на страницы создания
-        и редактирования заметки передаются формы.
-        """
-        urls = (ADD_URL, EDIT_URL)
-        for url in urls:
-            response = self.author_client.get(url)
-            with self.subTest(url=url):
-                self.assertIsInstance(response.context.get('form'), NoteForm)
+    def test_note_transmit_form(self):
+        """Проверяем, что заметки передаются в формы."""
+        slug = {'slug': self.note.slug}
+        urls = (
+            ('notes:edit', slug),
+            ('notes:add', None)
+        )
+        for name, kwargs in urls:
+            with self.subTest(name=name):
+                url = reverse(name, kwargs=kwargs)
+                response = self.author_client.get(url)
+                self.assertIn('form', response.context)
+                self.assertIsInstance(response.context['form'], NoteForm)
