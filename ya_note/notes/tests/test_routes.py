@@ -44,14 +44,10 @@ class TestNote(TestCase):
         Страницы регистрации и  входа в учетную запись доступны всем
         пользователям.
         """
-        urls = (
-            (self.home_url, self.client),
-            (self.login_url, self.client),
-            (self.signup_url, self.client),
-        )
-        for url, users in urls:
+        urls = (self.home_url, self.login_url, self.signup_url)
+        for url in urls:
             with self.subTest(url=url):
-                response = users.get(url)
+                response = self.client.get(url)
                 self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_logout(self):
@@ -68,11 +64,7 @@ class TestNote(TestCase):
         со списком заметок, страница успешного добавления заметки и
         страница добавления заметки.
         """
-        urls = (
-            (self.list_url),
-            (self.add_url),
-            (self.success_url)
-        )
+        urls = (self.list_url, self.add_url, self.success_url)
         for url in urls:
             with self.subTest(url=url):
                 response = self.reader_client.get(url)
@@ -88,11 +80,7 @@ class TestNote(TestCase):
             (self.reader_client, HTTPStatus.NOT_FOUND),
             (self.author_client, HTTPStatus.OK)
         )
-        urls = (
-            (self.detail_url),
-            (self.edit_url),
-            (self.delete_url),
-        )
+        urls = (self.detail_url, self.edit_url, self.delete_url),
         for user, status in clients:
             for url in urls:
                 with self.subTest(url=url, status=status, user=user):
@@ -104,14 +92,13 @@ class TestNote(TestCase):
         Проверяем перенаправление анонимного пользователя на
         страницу авторизации.
         """
-        urls = (
-            (self.add_url),
-            (self.list_url),
-            (self.success_url),
-            (self.detail_url),
-            (self.edit_url),
-            (self.delete_url)
-        )
+        urls = (self.add_url,
+                self.list_url,
+                self.success_url,
+                self.detail_url,
+                self.edit_url,
+                self.delete_url
+                )
         for url in urls:
             with self.subTest(url=url):
                 redirect_url = f'{self.login_url}?next={url}'

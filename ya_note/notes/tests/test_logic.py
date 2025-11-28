@@ -103,13 +103,16 @@ class TestContent(TestCase):
         self.assertRedirects(response, self.done_url)
         self.note.refresh_from_db()
         self.assertEqual(self.note.text, self.form_note['text'])
+        self.assertEqual(self.note.title, self.form_note['title'])
+        self.assertEqual(self.note.slug, self.form_note['slug'])
 
     def test_delete_note_not_author(self):
         """Проверяем, что читатель не может удалить чужую запись."""
         response = self.author_client.post(self.edit_url, data=self.form_note)
         self.assertRedirects(response, self.done_url)
         self.note.refresh_from_db()
-        self.assertEqual(self.note.text, self.form_note['text'])
+        note_count = Note.objects.count()
+        self.assertEqual(note_count, 1)
 
     def test_edit_note_not_author(self):
         """Проверяем, что читатель не может редактировать чужую запись."""

@@ -45,10 +45,7 @@ class TestContent(TestCase):
 
     def test_note_transmit_form(self):
         """Проверяем, что заметки передаются в формы."""
-        urls = (
-            (self.edit_url),
-            (self.add_url)
-        )
+        urls = (self.edit_url, self.add_url)
         for url in urls:
             with self.subTest(url=url):
                 response = self.author_client.get(url)
