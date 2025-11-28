@@ -1,10 +1,9 @@
 from http import HTTPStatus
 
+from pytils.translit import slugify
 from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
 from django.urls import reverse
-
-from pytils.translit import slugify
 
 from notes.models import Note
 from notes.forms import WARNING
@@ -14,7 +13,6 @@ User = get_user_model()
 
 
 class TestContent(TestCase):
-    NOTE_TEXT = 'Второй текст'
 
     @classmethod
     def setUpTestData(cls):
@@ -37,7 +35,7 @@ class TestContent(TestCase):
 
         cls.form_note = {
             'title': 'Второй заголовок',
-            'text': cls.NOTE_TEXT,
+            'text': 'Текст формы',
             'slug': 'post_slug'
         }
 
@@ -66,6 +64,7 @@ class TestContent(TestCase):
         self.assertEqual(note.title, self.form_note['title'])
         self.assertEqual(note.text, self.form_note['text'])
         self.assertEqual(note.slug, self.form_note['slug'])
+        self.assertEqual(note.author, self.reader_user)
 
     def test_user_cant_use_duplicate_slug(self):
         """Проверяем slug на уникальность."""
@@ -76,21 +75,18 @@ class TestContent(TestCase):
         self.assertFormError(
             form=form,
             field='slug',
-            errors=self.note.slug + WARNING
+            errors=self.form_note['slug'] + WARNING
         )
         note_count_now = Note.objects.count()
         self.assertEqual(note_count, note_count_now)
 
     def test_create_slug_for_slugify(self):
         """Проверяем создание slug при помощи slugify."""
-        form_slug = {
-            'title': 'slugify_title',
-            'text': 'slugify_text'
-        }
-        response = self.reader_client.post(self.add_url, data=form_slug)
-        result_slug = slugify(form_slug['title'])
-        note = Note.objects.latest('id')
+        self.form_note.pop('slug')
+        response = self.reader_client.post(self.add_url, data=self.form_note)
+        result_slug = slugify(self.form_note['title'])
         self.assertRedirects(response, self.done_url)
+        note = Note.objects.latest('id')
         self.assertEqual(note.slug, result_slug)
 
     def test_delete_note_author(self):
@@ -98,6 +94,8 @@ class TestContent(TestCase):
         response = self.author_client.delete(self.delete_url)
         self.assertRedirects(response, self.done_url)
         self.assertEqual(response.status_code, HTTPStatus.FOUND)
+        note_count = Note.objects.count()
+        self.assertEqual(note_count, 0)
 
     def test_edit_note_author(self):
         """Проверяем, что пользователь может редактировать свои заметки"""
@@ -108,14 +106,17 @@ class TestContent(TestCase):
 
     def test_delete_note_not_author(self):
         """Проверяем, что читатель не может удалить чужую запись."""
-        response = self.reader_client.delete(self.delete_url)
-        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
-        note_count = Note.objects.count()
-        self.assertEqual(note_count, 1)
+        response = self.author_client.post(self.edit_url, data=self.form_note)
+        self.assertRedirects(response, self.done_url)
+        self.note.refresh_from_db()
+        self.assertEqual(self.note.text, self.form_note['text'])
 
     def test_edit_note_not_author(self):
         """Проверяем, что читатель не может редактировать чужую запись."""
         response = self.reader_client.post(self.edit_url, data=self.form_note)
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
-        self.note.refresh_from_db()
-        self.assertNotEqual(self.note.text, self.form_note['text'])
+        note = Note.objects.get(id=self.note.id)
+        self.assertEqual(note.title, self.note.title)
+        self.assertEqual(note.text, self.note.text)
+        self.assertEqual(note.slug, self.note.slug)
+        self.assertEqual(note.author, self.note.author)

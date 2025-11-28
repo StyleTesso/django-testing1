@@ -7,8 +7,6 @@ from notes.models import Note
 
 User = get_user_model()
 
-LIST_URL = reverse('notes:list')
-
 
 class TestContent(TestCase):
 
@@ -26,35 +24,33 @@ class TestContent(TestCase):
             text='Текст',
             author=cls.author_user,
             slug='note_slug')
-
-    def test_new_note_in_list_notes(self):
-        """
-        Проверяем, что отдельная заметка передается на страницу
-        со списком заметок.
-        """
-        response = self.author_client.get(LIST_URL)
-        object_list = response.context['object_list']
-        self.assertIn(self.note, object_list)
+        cls.list_url = reverse('notes:list')
+        cls.edit_url = reverse('notes:edit', kwargs={'slug': cls.note.slug})
+        cls.add_url = reverse('notes:add')
 
     def test_note_note_add_all_list(self):
         """
         Проверяем, что в список заметок одного пользователя
         не попадают заметки другого пользователя.
         """
-        response = self.reader_client.get(LIST_URL)
-        object_list = response.context['object_list']
-        self.assertNotIn(self.note, object_list)
+        clients = (
+            (self.author_client, True),
+            (self.reader_client, False)
+        )
+        for client, expected_result in clients:
+            with self.subTest(client=client, expected_result=expected_result):
+                response = client.get(self.list_url)
+                object_list = response.context['object_list']
+                self.assertIs(self.note in object_list, expected_result)
 
     def test_note_transmit_form(self):
         """Проверяем, что заметки передаются в формы."""
-        slug = {'slug': self.note.slug}
         urls = (
-            ('notes:edit', slug),
-            ('notes:add', None)
+            (self.edit_url),
+            (self.add_url)
         )
-        for name, kwargs in urls:
-            with self.subTest(name=name):
-                url = reverse(name, kwargs=kwargs)
+        for url in urls:
+            with self.subTest(url=url):
                 response = self.author_client.get(url)
                 self.assertIn('form', response.context)
                 self.assertIsInstance(response.context['form'], NoteForm)

@@ -25,6 +25,18 @@ class TestNote(TestCase):
             title='Заголовок',
             text='Текст',
             author=cls.author_user)
+        cls.home_url = reverse('notes:home')
+        cls.login_url = reverse('users:login')
+        cls.signup_url = reverse('users:signup')
+        cls.logout_url = reverse('users:logout')
+        cls.list_url = reverse('notes:list')
+        cls.add_url = reverse('notes:add')
+        cls.success_url = reverse('notes:success')
+        cls.edit_url = reverse('notes:edit', kwargs={'slug': cls.note.slug})
+        cls.detail_url = reverse(
+            'notes:detail', kwargs={'slug': cls.note.slug})
+        cls.delete_url = reverse(
+            'notes:delete', kwargs={'slug': cls.note.slug})
 
     def test_home_and_authentication_page(self):
         """
@@ -33,17 +45,12 @@ class TestNote(TestCase):
         пользователям.
         """
         urls = (
-            ('notes:home', self.client),
-            ('users:login', self.author_client),
-            ('users:login', self.reader_client),
-            ('users:login', self.client),
-            ('users:signup', self.client),
-            ('users:signup', self.reader_client),
-            ('users:signup', self.author_client),
+            (self.home_url, self.client),
+            (self.login_url, self.client),
+            (self.signup_url, self.client),
         )
-        for name, users in urls:
-            with self.subTest(name=name):
-                url = reverse(name)
+        for url, users in urls:
+            with self.subTest(url=url):
                 response = users.get(url)
                 self.assertEqual(response.status_code, HTTPStatus.OK)
 
@@ -52,16 +59,8 @@ class TestNote(TestCase):
         Проверяем, что страница выхода с учетной записи доступна всем
         пользователям.
         """
-        urls = (
-            ('users:logout', self.client),
-            ('users:logout', self.author_client),
-            ('users:logout', self.reader_client)
-        )
-        for name, users in urls:
-            with self.subTest(name=name):
-                url = reverse(name)
-                response = users.post(url)
-                self.assertEqual(response.status_code, HTTPStatus.OK)
+        response = self.client.post(self.logout_url)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_edit_notes(self):
         """
@@ -70,13 +69,12 @@ class TestNote(TestCase):
         страница добавления заметки.
         """
         urls = (
-            ('notes:list'),
-            ('notes:add'),
-            ('notes:success')
+            (self.list_url),
+            (self.add_url),
+            (self.success_url)
         )
-        for name in urls:
-            with self.subTest(name=name):
-                url = reverse(name)
+        for url in urls:
+            with self.subTest(url=url):
                 response = self.reader_client.get(url)
                 self.assertEqual(response.status_code, HTTPStatus.OK)
 
@@ -86,45 +84,36 @@ class TestNote(TestCase):
         удаление доступы только автору поста, а читателю возвращается
         ошибка 404.
         """
-        slug = {'slug': self.note.slug}
-        urls = (
-            ('notes:detail', slug,
-             self.author_client, HTTPStatus.OK),
-            ('notes:edit', slug,
-             self.author_client, HTTPStatus.OK),
-            ('notes:delete', slug,
-             self.author_client, HTTPStatus.OK),
-            ('notes:detail', slug,
-             self.reader_client, HTTPStatus.NOT_FOUND),
-            ('notes:edit', slug,
-             self.reader_client, HTTPStatus.NOT_FOUND),
-            ('notes:delete', slug,
-             self.reader_client, HTTPStatus.NOT_FOUND),
+        clients = (
+            (self.reader_client, HTTPStatus.NOT_FOUND),
+            (self.author_client, HTTPStatus.OK)
         )
-        for name, kwargs, client, status in urls:
-            with self.subTest(name=name, status=status):
-                url = reverse(name, kwargs=kwargs)
-                response = client.get(url)
-                self.assertEqual(response.status_code, status)
+        urls = (
+            (self.detail_url),
+            (self.edit_url),
+            (self.delete_url),
+        )
+        for user, status in clients:
+            for url in urls:
+                with self.subTest(url=url, status=status, user=user):
+                    response = user.get(url)
+                    self.assertEqual(response.status_code, status)
 
     def test_redirects(self):
         """
         Проверяем перенаправление анонимного пользователя на
         страницу авторизации.
         """
-        slug = {'slug': self.note.slug}
-        login_url = reverse('users:login')
         urls = (
-            ('notes:add', None),
-            ('notes:list', None),
-            ('notes:success', None),
-            ('notes:detail', slug),
-            ('notes:edit', slug),
-            ('notes:delete', slug)
+            (self.add_url),
+            (self.list_url),
+            (self.success_url),
+            (self.detail_url),
+            (self.edit_url),
+            (self.delete_url)
         )
-        for name, kwargs in urls:
-            with self.subTest(name=name):
-                url = reverse(name, kwargs=kwargs)
-                redirect_url = f'{login_url}?next={url}'
+        for url in urls:
+            with self.subTest(url=url):
+                redirect_url = f'{self.login_url}?next={url}'
                 response = self.client.get(url)
                 self.assertRedirects(response, redirect_url)

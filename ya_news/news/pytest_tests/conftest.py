@@ -35,11 +35,10 @@ def reader_client(reader):
 
 @pytest.fixture
 def news(db):
-    news = News.objects.create(
+    return News.objects.create(
         title='Заголовок',
         text='Текст',
     )
-    return news
 
 
 @pytest.fixture
@@ -64,12 +63,11 @@ def signup_url():
 
 @pytest.fixture
 def comment(author, news, db):
-    comment = Comment.objects.create(
+    return Comment.objects.create(
         news=news,
         text='Текст',
         author=author
     )
-    return comment
 
 
 @pytest.fixture
@@ -109,3 +107,13 @@ def all_comments(author, news, db, detail_url):
 @pytest.fixture
 def form_data():
     return {'text': 'Новый текст'}
+
+
+@pytest.fixture
+def redirect_detail_url(detail_url):
+    return f'{detail_url}#comments'
+
+
+@pytest.fixture
+def redirect_login_url(detail_url, login_url):
+    return f'{login_url}?next={detail_url}'
