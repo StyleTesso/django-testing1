@@ -80,7 +80,7 @@ class TestNote(TestCase):
             (self.reader_client, HTTPStatus.NOT_FOUND),
             (self.author_client, HTTPStatus.OK)
         )
-        urls = (self.detail_url, self.edit_url, self.delete_url),
+        urls = (self.detail_url, self.edit_url, self.delete_url)
         for user, status in clients:
             for url in urls:
                 with self.subTest(url=url, status=status, user=user):
