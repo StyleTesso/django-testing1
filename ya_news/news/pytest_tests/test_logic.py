@@ -7,12 +7,14 @@ from news.models import Comment
 from news.forms import BAD_WORDS, WARNING
 
 
-def test_user_can_create_comment(author_client,
-                                 author,
-                                 form_data,
-                                 detail_url,
-                                 news,
-                                 redirect_detail_url):
+def test_user_can_create_comment(
+        author_client,
+        author,
+        form_data,
+        detail_url,
+        news,
+        redirect_detail_url
+):
     """
     Проверяем,
     что авторизованный пользователь может оставить комментарий.
@@ -51,11 +53,13 @@ def test_user_cant_use_bad_words(reader_client, detail_url):
     assert comments_count == 0
 
 
-def test_author_can_edit_note(author_client,
-                              edit_url,
-                              comment,
-                              form_data,
-                              redirect_detail_url):
+def test_author_can_edit_note(
+        author_client,
+        edit_url,
+        comment,
+        form_data,
+        redirect_detail_url
+):
     """Проверяем, что автор комментария может его редактировать."""
     response = author_client.post(edit_url, form_data)
     assertRedirects(response, redirect_detail_url)
@@ -63,10 +67,12 @@ def test_author_can_edit_note(author_client,
     assert comment.text == form_data['text']
 
 
-def test_other_user_cant_edit_comment(reader_client,
-                                      form_data,
-                                      comment,
-                                      edit_url):
+def test_other_user_cant_edit_comment(
+        reader_client,
+        form_data,
+        comment,
+        edit_url
+):
     """Проверяем, что пользователь не может редактировать чужой комментарий."""
     response = reader_client.post(edit_url, form_data)
     assert response.status_code == HTTPStatus.NOT_FOUND
@@ -74,10 +80,12 @@ def test_other_user_cant_edit_comment(reader_client,
     assert comment.text == comment_from_db.text
 
 
-def test_author_can_delete_comment(author_client,
-                                   delete_url,
-                                   detail_url,
-                                   redirect_detail_url):
+def test_author_can_delete_comment(
+        author_client,
+        delete_url,
+        detail_url,
+        redirect_detail_url
+):
     """Проверяем, что автор комментария может его удалить."""
     response = author_client.post(delete_url)
     assertRedirects(response, redirect_detail_url)

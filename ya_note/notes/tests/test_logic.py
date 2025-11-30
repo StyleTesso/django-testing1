@@ -105,6 +105,7 @@ class TestContent(TestCase):
         self.assertEqual(self.note.text, self.form_note['text'])
         self.assertEqual(self.note.title, self.form_note['title'])
         self.assertEqual(self.note.slug, self.form_note['slug'])
+        self.assertEqual(self.note.author, self.author_user)
 
     def test_delete_note_not_author(self):
         """Проверяем, что читатель не может удалить чужую запись."""

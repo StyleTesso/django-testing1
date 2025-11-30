@@ -6,9 +6,9 @@ from news.forms import CommentForm
 pytestmark = pytest.mark.django_db
 
 
-def test_paginate(all_news, home_url, reader_client):
+def test_paginate(all_news, home_url, client):
     """Проверяем, что на главную страницу выводится не более 10 записей."""
-    response = reader_client.get(home_url)
+    response = client.get(home_url)
     assert 'object_list' in response.context
     object_list = response.context['object_list']
     assert object_list.count() == NEWS_COUNT_ON_HOME_PAGE
@@ -27,9 +27,9 @@ def test_news_sorting(all_news, client, home_url):
     assert all_dates == sorted_dates
 
 
-def test_comment_sorting(all_comments, client, detail_url, reader_client):
+def test_comment_sorting(all_comments, client, detail_url):
     """Проверяем, сортировку комментариев в хронологическом порядке."""
-    response = reader_client.get(detail_url)
+    response = client.get(detail_url)
     assert 'news' in response.context
     news = response.context['news']
     all_comments = news.comment_set.all()
